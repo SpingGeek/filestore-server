@@ -4,6 +4,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"filestore-server/meta"
 	"filestore-server/util"
 	"fmt"
@@ -102,4 +103,18 @@ func isImage(ext string) bool {
 // UploadSucHandler 上传已完成
 func UploadSucHandler(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "Upload finished !")
+}
+
+// GetFileMeaHandler 获取文件元信息
+func GetFileMeaHandler(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+
+	filehash := r.Form["filehash"][0]
+	fMeta := meta.GetFileMeta(filehash)
+	data, err := json.Marshal(fMeta)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Write(data)
 }
