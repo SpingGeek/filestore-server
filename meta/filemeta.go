@@ -19,7 +19,7 @@ func init() {
 	fileMetas = make(map[string]FileMeta)
 }
 
-// UpdateFileMeta x新增或者更新文件的元信息
+// UpdateFileMeta 新增或者更新文件的元信息
 func UpdateFileMeta(fmeta FileMeta) {
 	fileMetas[fmeta.FileSha1] = fmeta
 }
@@ -27,4 +27,9 @@ func UpdateFileMeta(fmeta FileMeta) {
 // GetFileMeta 通过 sha1 获取文件的元信息的对象
 func GetFileMeta(fileSha1 string) FileMeta {
 	return fileMetas[fileSha1]
+}
+
+// RemoveFileMeta 删除文件的元信息
+func RemoveFileMeta(fileSha1 string) {
+	delete(fileMetas, fileSha1)
 }
