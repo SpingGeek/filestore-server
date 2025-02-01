@@ -12,16 +12,14 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"path/filepath"
-	"strings"
 	"time"
 )
 
 // UploadHandler 处理文件上传
 func UploadHandler(w http.ResponseWriter, r *http.Request) {
-	// check the method of GET
+	// 	check the method of GET
 	if r.Method == "GET" {
-		// 返回上传的 html 页面
+		// 返回上传的 html 的页面
 		data, err := ioutil.ReadFile("./static/view/index.html")
 		if err != nil {
 			io.WriteString(w, "internal server error")
@@ -37,29 +35,15 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		defer file.Close()
 
-		// 获取文件扩展名，判断文件类型
-		ext := getFileExtension(head.Filename)
-		var fileMeta meta.FileMeta
-		var savePath string
-
-		// 根据扩展名判断文件类型并存储到不同目录
-		if isImage(ext) {
-			// 图片文件存储路径
-			savePath = "/Users/spring/workspace/code/src/project/dev/filestore-server/docs/pic/" + head.Filename
-		} else {
-			// 非图片文件存储路径
-			savePath = "/Users/spring/workspace/code/src/project/dev/filestore-server/docs/file/" + head.Filename
-		}
-
-		fileMeta = meta.FileMeta{
-			FileName:     head.Filename,
-			LocationPic:  savePath,
-			LocationFile: savePath,
-			UploadAt:     time.Now().Format("2006-01-02 15:04:05"),
+		fileMeta := meta.FileMeta{
+			FileName: head.Filename,
+			Location: "/Users/spring/workspace/code/src/project/dev/filestore-server/docs/file/" + head.Filename,
+			UploadAt: time.Now().Format("2006-01-02 15:04:05"),
 		}
 
 		// 在指定目录进行创建
-		newFile, err := os.Create(savePath)
+		// notice : 这个地方一定要加上 "/" 符号，不然是到达不了这个目录里面去的
+		newFile, err := os.Create(fileMeta.Location)
 		if err != nil {
 			fmt.Printf("Failed to create file, err : %s\n", err.Error())
 			return
@@ -82,24 +66,6 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// getFileExtension 获取文件扩展名
-func getFileExtension(fileName string) string {
-	ext := filepath.Ext(fileName)
-	return strings.ToLower(ext)
-}
-
-// isImage 判断文件是否为图片
-func isImage(ext string) bool {
-	// 支持的图片扩展名
-	imageExtensions := []string{".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff"}
-	for _, e := range imageExtensions {
-		if ext == e {
-			return true
-		}
-	}
-	return false
-}
-
 // UploadSucHandler 上传已完成
 func UploadSucHandler(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "Upload finished !")
@@ -116,5 +82,28 @@ func GetFileMeaHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	w.Write(data)
+}
+
+func DownloadHandler(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	fsha1 := r.Form.Get("filehash")
+	fm := meta.GetFileMeta(fsha1)
+
+	f, err := os.Open(fm.Location)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	defer f.Close()
+
+	data, err := ioutil.ReadAll(f)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/octect-stream")
+	w.Header().Set("content-disposition", "attachment;filename=\""+fm.FileName+"\"")
 	w.Write(data)
 }
